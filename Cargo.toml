@@ -1,0 +1,29 @@
+[package]
+edition = "2021"
+name = "pico-pio-dma-test"
+authors = ["kromych"]
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+embedded-hal = "1.0"
+fugit = "0.3"
+log = { version = "0.4", default-features = false }
+pio = "0.2"
+pio-proc = "0.2"
+portable-atomic = {version = "1.7.0", features = ["critical-section"]}
+rp2040-boot2 = "0.3"
+rp2040-hal = { version = "0.11", features = ["binary-info", "critical-section-impl"] }
+rp2040-pac = "0.6"
+
+[profile.release]
+debug = 2
+lto = true
+opt-level = 3
+
+[profile.dev]
+debug = 2
+lto = true
+opt-level = "z"
