@@ -13,7 +13,7 @@ fugit = "0.3"
 log = { version = "0.4", default-features = false }
 pio = "0.2"
 pio-proc = "0.2"
-portable-atomic = {version = "1.7.0", features = ["critical-section"]}
+portable-atomic = {version = "1.10.0", features = ["critical-section"]}
 rp2040-boot2 = "0.3"
 rp2040-hal = { version = "0.11", features = ["binary-info", "critical-section-impl"] }
 rp2040-pac = "0.6"
