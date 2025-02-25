@@ -10,6 +10,7 @@
 //! ```
 
 use fugit::RateExtU32;
+use rp2040_hal::dma::DMAExt;
 use rp2040_hal::gpio::FunctionUart;
 use rp2040_hal::rom_data;
 use rp2040_hal::uart::DataBits;
@@ -19,6 +20,8 @@ use rp2040_hal::uart::UartPeripheral;
 use rp2040_hal::Clock;
 use uart_log::Uart;
 
+mod experiments;
+mod lax_dma;
 mod time;
 mod uart_log;
 
@@ -44,8 +47,12 @@ pub static PICOTOOL_ENTRIES: [rp2040_hal::binary_info::EntryAddr; 4] = [
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    log::error!("{}", info);
+    log::error!("panic");
     loop {}
+}
+
+fn get_pio0_bad() -> rp2040_pac::PIO0 {
+    unsafe { rp2040_pac::PIO0::steal() }
 }
 
 #[rp2040_hal::entry]
@@ -71,6 +78,9 @@ fn main() -> ! {
     )
     .ok()
     .unwrap();
+
+    // Initialize and reset the DMA peripheral
+    let _dma = pac.DMA.split(&mut pac.RESETS);
 
     let sio = rp2040_hal::sio::Sio::new(pac.SIO);
     let pins = rp2040_hal::gpio::Pins::new(
@@ -103,6 +113,25 @@ fn main() -> ! {
         rom_data::git_revision(),
         rom_data::rom_version_number(),
         time::time_us64()
+    );
+
+    experiments::run_dma_tests();
+    experiments::test_with_pio_invert_twice(pac.PIO0, &mut pac.RESETS);
+    experiments::test_with_pio_expand_12times(get_pio0_bad(), &mut pac.RESETS);
+    experiments::test_with_pio_expand_dynamic(
+        get_pio0_bad(),
+        &mut pac.RESETS,
+        experiments::MonochromeColor::Bpp1,
+    );
+    experiments::test_with_pio_expand_dynamic(
+        get_pio0_bad(),
+        &mut pac.RESETS,
+        experiments::MonochromeColor::Bpp2,
+    );
+    experiments::test_with_pio_expand_dynamic(
+        get_pio0_bad(),
+        &mut pac.RESETS,
+        experiments::MonochromeColor::Bpp4,
     );
 
     loop {
