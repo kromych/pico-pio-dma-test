@@ -30,6 +30,7 @@ pub type Uart = UartPeripheral<
 pub struct UartLoggerInner {
     uart: RefCell<Uart>,
     log_source_path: LogSourcePath,
+    color: bool,
 }
 
 pub struct UartLogger {
@@ -41,10 +42,11 @@ impl UartLogger {
         UartLogger { uart: None }
     }
 
-    pub fn set(&mut self, uart: Uart, log_source_path: LogSourcePath) {
+    pub fn set(&mut self, uart: Uart, log_source_path: LogSourcePath, color: bool) {
         self.uart = Some(UartLoggerInner {
             uart: RefCell::new(uart),
             log_source_path,
+            color,
         });
     }
 }
@@ -63,8 +65,20 @@ impl log::Log for UartLogger {
         }
         let mut uart = self.uart.as_ref().unwrap().uart.borrow_mut();
         let log_source_path = self.uart.as_ref().unwrap().log_source_path;
+        let color = self.uart.as_ref().unwrap().color;
+        let vte_color = match record.level() {
+            log::Level::Trace => "\x1b[37m",
+            log::Level::Debug => "\x1b[36m",
+            log::Level::Info => "\x1b[32m",
+            log::Level::Warn => "\x1b[33m",
+            log::Level::Error => "\x1b[31m",
+        };
+        if color {
+            uart.write_str(vte_color).ok();
+        }
+
         uart.write_fmt(format_args!(
-            "{:08x}[{:7}][{}",
+            "{:08x}:[{:7}][{}",
             crate::time::time_us64(),
             record.level(),
             record.module_path().unwrap_or_default(),
@@ -83,6 +97,11 @@ impl log::Log for UartLogger {
         }
         uart.write_fmt(format_args!("] {}", record.args())).ok();
         uart.write_str("\r\n").ok();
+
+        // Reset color
+        if color {
+            uart.write_str("\x1b[0m").ok();
+        }
     }
 
     fn flush(&self) {}
@@ -90,10 +109,10 @@ impl log::Log for UartLogger {
 
 static mut UART_LOGGER: UartLogger = UartLogger::null();
 
-pub fn init_uart_log(uart: Uart, log_source_path: LogSourcePath) {
+pub fn init_uart_log(uart: Uart, log_source_path: LogSourcePath, color: bool) {
     #[allow(static_mut_refs)]
     unsafe {
-        UART_LOGGER.set(uart, log_source_path);
+        UART_LOGGER.set(uart, log_source_path, color);
         log::set_logger_racy(&UART_LOGGER).unwrap();
         log::set_max_level_racy(log::LevelFilter::Trace);
     }

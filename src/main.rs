@@ -104,7 +104,7 @@ fn main() -> ! {
             )
             .unwrap();
 
-        uart_log::init_uart_log(log_uart, uart_log::LogSourcePath::Enabled);
+        uart_log::init_uart_log(log_uart, uart_log::LogSourcePath::Disabled, true);
     }
 
     log::info!(
